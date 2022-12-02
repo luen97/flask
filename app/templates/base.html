@@ -1,0 +1,42 @@
+{% extends 'bootstrap/base.html' %}
+
+{% block head %}
+    {{ super() }}
+    <!-- Estas lineas las incluye bootstrap
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     -->
+    <title>
+        {% block title %} Flask Platzi |{% endblock %}
+    </title>
+    <link rel="stylesheet" href="{{ url_for('static', filename = 'css/main.css')}}">
+{% endblock %}
+
+{% block body %}
+    {% block navbar %}
+    {% include 'navbar.html' %}
+    {% endblock %}
+
+    <!-- get_flashed_messages from flask
+    nos da un iterable con todos los mensajes
+    flasheados desde el inicio de la sesion-->
+    {% for message in get_flashed_messages() %}
+    <!-- Clases importadas de bootstrap (alerts ... etc)-->
+        <div class="alert alert-success alert-dismissible">
+            <button type="button" 
+            data-dismiss="alert"
+            class="close">
+            &times; <!-- Signo X-->
+            </button>
+            {{ message }}
+        </div>
+    {% endfor %}
+
+    {% block content %}{% endblock %}
+    <!-- Agregamos sccripts de JS para poder
+    cerrar el flash undiendo en la x-->
+    {% block scripts %}
+        {{ super() }}
+    {% endblock %}
+{% endblock %}
