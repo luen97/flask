@@ -27,24 +27,16 @@ a la ruta /hello sin pasar por la raís "/"-->
         encontrar la ruta específica pasandole
         el nombre de la función  -->
         <a href="{{ url_for('index') }}">Ir a inicio</a>
-
     {% endif %}
 
-    <div>
-        
-        <!-- 
-        Sin bootstrap
-        <form action="{{ url_for('hello')}}" method="'POST">
-            {{ login_form.username }}
-            {{ login_form.username.label }}
-        </form> -->
-        
-        {{ wtf.quick_form(login_form) }}
+    <div class="container">
+        <h2>Crea una nueva tarea</h2>
+        {{ wtf.quick_form(todo_form) }}
     </div>
 
-    <ul>
+    <ul class="list-group">
         {% for todo in todos %}
-            {{ macros.render_todo(todo)}}
+            {{ macros.render_todo(todo, delete_form, update_form)}}
         {% endfor %}
     </ul>
 {% endblock %}

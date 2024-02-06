@@ -1,60 +1,20 @@
 from flask import (
-    Flask, request, make_response, redirect,
+    request, make_response, redirect,
     escape, render_template, session, url_for,
     flash
 )
 from flask_bootstrap import Bootstrap
 
-## Para formularios
-# =======================================
-from flask_wtf import FlaskForm
-from wtforms.fields import (
-    StringField, PasswordField, SubmitField
-)
-from wtforms.validators import DataRequired
-# =======================================
-
 import unittest
 
+# Traemos los módulos de la app
 from app import create_app
+from app.forms import TodoForm, DeleteTodoForm, UpdateTodoForm
+from app.firestore_service import get_users, get_todos, put_todo, delete_todo, update_todo
+
+from flask_login import login_required, current_user
 
 app = create_app()
-
-# Pasamos el nombre de la aplicación
-# app = Flask(
-#     __name__, # __name__ = main.py
-#     template_folder='./templates',
-#     static_folder='./static') 
-# # Inicializamos
-# bootstrap = Bootstrap(app)
-
-# # Creamos la llave secreta para la session
-# # sirve para encriptar info delicada
-# app.config['SECRET_KEY'] = 'SUPER SECRETO'
-
-
-#To do's
-todos = ['Hacer almuerzo','mercar','lavar ropa']
-
-# Modelos 
-
-# Hereda de FlaskForm
-class LoginForm(FlaskForm):
-
-    # Campos de formulario
-    username = StringField(
-        'Nombre de ususario', 
-        # Dato obligatorio
-        # no olvidar inicializar ()
-        validators=[DataRequired()], 
-        )
-    password = PasswordField(
-        'Password', 
-        validators=[DataRequired()]
-        )
-
-    # SUmbit button
-    submit = SubmitField('Enviar')
 
 # CLI
 @app.cli.command()
@@ -96,49 +56,50 @@ def index():
 
     return response
 
+
 @app.route('/hello', methods=['GET','POST'])
+@login_required
 def hello():
-
-    # Sacamos la ip de la cookie y no del response
-    # user_ip = request.cookies.get('user_ip')
-
-    # Pedimos la ip a la sesion, no al request
-    # para que el usuario no pueda cambiarmela por ahí 
     user_ip = session.get('user_ip')
     # Para evitar una XSS (JS injection) 
     # https://www.youtube.com/watch?v=EoaDgUgS6QA
     # escapamos el user_ip
     user_ip = escape(user_ip)
-    login_form = LoginForm()
-    username = session.get('username')
+    username = current_user.id
+    todo_form = TodoForm()
+    delete_form = DeleteTodoForm()
+    update_form = UpdateTodoForm()
 
     context = {
         'user_ip': user_ip,
-        'todos': todos,
-        'login_form': login_form,
-        'username': username
+        'todos': get_todos(user_id=username),
+        'username': username,
+        'todo_form': todo_form,
+        'delete_form': delete_form,
+        'update_form': update_form
     }
-    
-    # Obtenemos los datos del formulario
-    # y los agregamos a la session
 
-    # Detecta cuando mando un POST
-    # y valida la forma (formulario)
-    # if (me hacen un POST y la forma es valida)
-    if login_form.validate_on_submit():
-        # Redirect al index
-        # Saco el username de lo que enviaron
-        # y lo metemos a la session
-        username = login_form.username.data
-        session['username'] = username
+    if todo_form.validate_on_submit():
+        put_todo(user_id=username, description=todo_form.description.data)
+        flash('Tu tarea se creo con exito')
+        return redirect(url_for('hello'))
 
-        flash('Nombre de usuario registrado con éxito')
-
-        return redirect(url_for('index'))
-    
-    # Si hacen un GET, regreso este template
     return render_template('hello.html', **context)
 
+@app.route('/todo/delete/<todo_id>', methods=['POST'])
+def delete(todo_id):
+    user_id = current_user.id
+    delete_todo(user_id=user_id, todo_id=todo_id)
+
+    return redirect(url_for('hello'))
+
+@app.route('/todo/update/<todo_id>/<int:done>', methods=['POST'])
+def update(todo_id,done):
+    # Casteamos el done (bool) como int
+    user_id = current_user.id
+    print('Done', done)
+    update_todo(user_id=user_id,todo_id=todo_id,done=done)
+    redirect(url_for('hello'))
 
 if __name__ == '__main__':
     app.run(port = 5000, debug = True)
